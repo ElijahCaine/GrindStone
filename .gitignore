@@ -1,0 +1,6 @@
+venv/
+.venv/
+*.pyc
+build/
+.grindstone.yaml
+.grindstone.yml
