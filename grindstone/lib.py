@@ -15,11 +15,14 @@ class GrindStone(object):
     """
     The GrindStone object.
     """
-    def __init__(self):
+    def __init__(self, path=None):
         # Establish variables
-        self.grindstone_filename = '/.grindstone'
+        self.grindstone_filename = '.grindstone'
         self.cwd = os.getcwd()
-        self.home = os.environ['HOME']
+        if path is not None:
+            self.path = os.path.abspath(path)+'/'
+        else:
+            self.path = os.environ['HOME']
 
         # set the path
         self.grindstone_path = self.grindstone_location()
@@ -31,17 +34,9 @@ class GrindStone(object):
 
     def grindstone_location(self):
         """
-        Returns verified location of `.grindstone` file if it exist in
-            the current working directory or HOME.
-        Returns None otherwise.
+        Returns the path of where the grindstone file ought to be.
         """
-        # If there is a grindstone file in the cwd,
-        if os.path.isfile(self.cwd + self.grindstone_filename):
-            # return that file path
-            return self.cwd + self.grindstone_filename
-        else:
-            # Otherwise default to home directory
-            return self.home + self.grindstone_filename
+        return self.path + self.grindstone_filename
 
 
     def open_grindstone(self):
@@ -63,10 +58,12 @@ class GrindStone(object):
         """
         Adds object to list of grindstone['tasks'].
         """
+        # A name is required to create a task
         if name is not None:
-            to_add = {name: desc}
-            self.grindstone['tasks'].append(to_add)
+            # desc can be None, so we can just append whatever we have.
+            self.grindstone['tasks'].append( {name: desc} )
         else:
+            # Raising errors is good, and makes tests easy.
             raise ValueError('Tasks `name` cannot be None')
 
 
@@ -89,8 +86,11 @@ class GrindStone(object):
 class TestGrindStoneLibrary(unittest.TestCase):
 
     def setUp(self):
-        self.testing_path = '/tmp/grindstone_testing'
+        # We're testing everything in a /tmp/* directory to avoid overwriting
+        # an existing .grindstone file
+        self.testing_path = '/tmp/grindstone_testing/'
 
+        # Setting the HOME env var because 
         os.environ['HOME'] = self.testing_path
         try:
             os.mkdir(self.testing_path)
@@ -106,18 +106,19 @@ class TestGrindStoneLibrary(unittest.TestCase):
 
 
     def test_cwd_path(self):
-        os.mkdir('./t')
-        os.chdir('./t')
+        os.mkdir('./t/')
+        os.chdir('./t/')
         open('.grindstone', 'w').close()
-        self.gs = GrindStone()
+        self.gs = GrindStone('.')
         self.assertEqual(self.gs.grindstone_path,\
-                         os.path.realpath('.grindstone'))
+                         os.path.realpath(self.gs.grindstone_filename))
 
 
     def test_home_path(self):
         self.gs = GrindStone()
-        self.assertEqual(self.gs.grindstone_path,\
-                         os.path.realpath(os.environ['HOME']+'/.grindstone'))
+        self.assertEqual(self.gs.grindstone_path, \
+                         os.path.realpath(os.environ['HOME'] + \
+                         self.gs.grindstone_filename))
 
 
     def test_add_one_complete_task(self):
@@ -163,13 +164,23 @@ class TestGrindStoneLibrary(unittest.TestCase):
 
     def test_add_empty_task(self):
         self.gs = GrindStone()
-        with self.assertRaises(ValueError):
-            self.gs.add_task(desc='foo')
+        with self.assertRaises(ValueError) as err:
+            self.gs.add_task()
 
+        self.assertEqual(str(err.exception),\
+                         'Tasks `name` cannot be None')
+        self.assertEqual(self.gs.grindstone,\
+                         {'tasks':[]})
 
     def test_add_task_with_no_name(self):
         self.gs = GrindStone()
-        pass
+        with self.assertRaises(ValueError) as err:
+            self.gs.add_task(desc='foo')
+
+        self.assertEqual(str(err.exception),\
+                         'Tasks `name` cannot be None')
+        self.assertEqual(self.gs.grindstone,\
+                         {'tasks':[]})
 
 
 if __name__ == '__main__':
