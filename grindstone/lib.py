@@ -25,18 +25,11 @@ class GrindStone(object):
             self.path = os.environ['HOME']
 
         # set the path
-        self.grindstone_path = self.grindstone_location()
+        self.grindstone_path = self.path + self.grindstone_filename
         # open the grindstone
         self.grindstone = self.open_grindstone()
         # write the grindstone
         #self.write_grindstone()
-
-
-    def grindstone_location(self):
-        """
-        Returns the path of where the grindstone file ought to be.
-        """
-        return self.path + self.grindstone_filename
 
 
     def open_grindstone(self):
@@ -44,14 +37,18 @@ class GrindStone(object):
         Opens a grindstone file and populates the grindstone with it's
         contents.
         """
-        with open(self.grindstone_path, 'a+') as f:
-            try:
+        try:
+            with open(self.grindstone_path, 'r') as f:
                 # Try opening the file
                 return json.loads(f.read())
-            # If the file is empty
-            except json.decoder.JSONDecodeError:
-                # Default return empty object with empty tasks list
-                return {'tasks': []}
+        # If the file is empty
+        except json.decoder.JSONDecodeError:
+            # Default return empty object with empty tasks list
+            return {'tasks': []}
+        # The file does not yet exist
+        except FileNotFoundError:
+            # Default return empty object with empty tasks list
+            return {'tasks': []}
 
 
     def add_task(self, name=None, desc=None):
@@ -83,6 +80,13 @@ class GrindStone(object):
             f.write(json.dumps(self.grindstone))
 
 
+    def get_task(self, task=None):
+        """
+        Returns a (task, description) tuple for a given task
+        """
+        pass
+
+
 class TestGrindStoneLibrary(unittest.TestCase):
 
     def setUp(self):
@@ -90,7 +94,7 @@ class TestGrindStoneLibrary(unittest.TestCase):
         # an existing .grindstone file
         self.testing_path = '/tmp/grindstone_testing/'
 
-        # Setting the HOME env var because 
+        # Setting the HOME env var because of conflicts with user envs
         os.environ['HOME'] = self.testing_path
         try:
             os.mkdir(self.testing_path)
@@ -101,7 +105,10 @@ class TestGrindStoneLibrary(unittest.TestCase):
 
 
     def tearDown(self):
-        os.remove(self.gs.grindstone_path)
+        try:
+            os.remove(self.gs.grindstone_path)
+        except FileNotFoundError:
+            pass
         shutil.rmtree(self.testing_path)
 
 
@@ -151,8 +158,8 @@ class TestGrindStoneLibrary(unittest.TestCase):
         self.gs.add_task('book1', 'read the book')
         self.gs.add_task('book2', 'read the other book')
         self.assertEqual(self.gs.grindstone,\
-                         {'tasks': [{'book1': 'read the book'},\
-                         {'book2': 'read the other book'}]})
+                         {'tasks': [{'book1': 'read the book'},
+                                    {'book2': 'read the other book'}]})
 
 
         self.gs.write_grindstone()
@@ -160,7 +167,35 @@ class TestGrindStoneLibrary(unittest.TestCase):
             file_contents = f.read()
         self.assertEqual(file_contents,\
                          '{"tasks": [{"book1": "read the book"}, '+
-                         '{"book2": "read the other book"}]}')
+                                    '{"book2": "read the other book"}]}')
+
+    def test_open_grindstone(self):
+        self.gs = GrindStone()
+        self.gs.add_task('bookAlpha', 'read the book')
+        self.gs.write_grindstone()
+
+        self.gs2 = GrindStone()
+        self.assertEqual(self.gs2.grindstone,\
+                         {'tasks': [{'bookAlpha': 'read the book'}]})
+
+    def test_open_modify_grindstone(self):
+        self.gs = GrindStone()
+        self.gs.add_task('bookAlpha', 'read the book')
+        self.gs.write_grindstone()
+
+        self.gs2 = GrindStone()
+        self.gs2.add_task('bookBeta', 'This one matters less')
+        self.assertEqual(self.gs2.grindstone,\
+                         {'tasks': [{'bookAlpha': 'read the book'},
+                                    {'bookBeta': 'This one matters less'}]})
+
+        self.gs2.write_grindstone()
+        with open(self.gs2.grindstone_path, 'r') as f:
+            file_contents2 = f.read()
+        self.assertEqual(file_contents2,\
+                         '{"tasks": [{"bookAlpha": "read the book"}, '+
+                                     '{"bookBeta": "This one matters less"}]}')
+
 
     def test_add_empty_task(self):
         self.gs = GrindStone()

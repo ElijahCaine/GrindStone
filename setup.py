@@ -1,15 +1,15 @@
 from distutils.core import setup
 
 setup(
-    name='grindstone',
-    version='0.01',
+    name='GrindStone',
+    version='0.1',
     packages=['grindstone'],
     author='Elijah Caine',
     author_email='elijahcainemv@gmail.com',
-    url='',
-    description='',
-    install_requires=[],
+    url='http://github.com/elijahcaine/',
+    description='Helping you put your nose to the GrindStone since 2015.',
     scripts=['grindstone/grindstone'],
-    download_url='',
     classifiers=['License :: OSI Approved :: MIT License'],
+    download_url='',
+    install_requires=[],
 )
