@@ -6,10 +6,28 @@ Author: Elijah Caine
 Description:
     Utility functionality and classes for the grindstone package.
 """
-import unittest
-import os
-import shutil
 import json
+import os
+
+def key_of(d):
+    """
+    Returns the key of a single element dict.
+    """
+    if len(d) > 1 and not type(d) == dict():
+        raise ValueError('key_of(d) may only except single element dict')
+    else:
+        return keys_of(d)[0]
+
+
+def keys_of(d):
+    """
+    Returns the keys of a dict.
+    """
+    try:
+        return list(d.keys())
+    except:
+        raise ValueError('keys_of(d) must be passed a dict')
+
 
 class GrindStone(object):
     """
@@ -56,8 +74,12 @@ class GrindStone(object):
         Adds object to list of grindstone['tasks'].
         """
         # A name is required to create a task
+        if {name: desc} in self.grindstone['tasks']\
+           or {name: None} in self.grindstone['tasks']:
+            raise ValueError('Task already exists')
+
         if name is not None:
-            # desc can be None, so we can just append whatever we have.
+            # desc can be None, so we can just append whatever we have
             self.grindstone['tasks'].append( {name: desc} )
         else:
             # Raising errors is good, and makes tests easy.
@@ -68,7 +90,12 @@ class GrindStone(object):
         """
         Deletes a given task by name.
         """
-        pass
+        g = self.grindstone['tasks']
+        for t in self.grindstone['tasks']:
+            if key_of(t) == task:
+                self.grindstone['tasks'].remove(t)
+                return True
+        return False
 
 
     def write_grindstone(self):
@@ -84,139 +111,14 @@ class GrindStone(object):
         """
         Returns a (task, description) tuple for a given task
         """
-        pass
+        for t in self.grindstone['tasks']:
+            if key_of(t) == task:
+                return t
+        return None
 
 
-class TestGrindStoneLibrary(unittest.TestCase):
-
-    def setUp(self):
-        # We're testing everything in a /tmp/* directory to avoid overwriting
-        # an existing .grindstone file
-        self.testing_path = '/tmp/grindstone_testing/'
-
-        # Setting the HOME env var because of conflicts with user envs
-        os.environ['HOME'] = self.testing_path
-        try:
-            os.mkdir(self.testing_path)
-        except FileExistsError:
-            shutil.rmtree(self.testing_path)
-            os.mkdir(self.testing_path)
-        os.chdir(self.testing_path)
-
-
-    def tearDown(self):
-        try:
-            os.remove(self.gs.grindstone_path)
-        except FileNotFoundError:
-            pass
-        shutil.rmtree(self.testing_path)
-
-
-    def test_cwd_path(self):
-        os.mkdir('./t/')
-        os.chdir('./t/')
-        open('.grindstone', 'w').close()
-        self.gs = GrindStone('.')
-        self.assertEqual(self.gs.grindstone_path,\
-                         os.path.realpath(self.gs.grindstone_filename))
-
-
-    def test_home_path(self):
-        self.gs = GrindStone()
-        self.assertEqual(self.gs.grindstone_path, \
-                         os.path.realpath(os.environ['HOME'] + \
-                         self.gs.grindstone_filename))
-
-
-    def test_add_one_complete_task(self):
-        self.gs = GrindStone()
-        self.gs.add_task('book1', 'read the book')
-        self.assertEqual(self.gs.grindstone,\
-                         {'tasks': [{'book1': 'read the book'}]})
-
-        self.gs.write_grindstone()
-        with open(self.gs.grindstone_path, 'r') as f:
-            file_contents = f.read()
-        self.assertEqual(file_contents,\
-                         '{"tasks": [{"book1": "read the book"}]}')
-
-
-    def test_add_one_shallow_task(self):
-        self.gs = GrindStone()
-        self.gs.add_task('bookA')
-        self.assertEqual(self.gs.grindstone, {'tasks': [{'bookA': None}]})
-
-        self.gs.write_grindstone()
-        with open(self.gs.grindstone_path, 'r') as f:
-            file_contents = f.read()
-        self.assertEqual(file_contents,\
-                         '{"tasks": [{"bookA": null}]}')
-
-
-    def test_add_complete_tasks(self):
-        self.gs = GrindStone()
-        self.gs.add_task('book1', 'read the book')
-        self.gs.add_task('book2', 'read the other book')
-        self.assertEqual(self.gs.grindstone,\
-                         {'tasks': [{'book1': 'read the book'},
-                                    {'book2': 'read the other book'}]})
-
-
-        self.gs.write_grindstone()
-        with open(self.gs.grindstone_path, 'r') as f:
-            file_contents = f.read()
-        self.assertEqual(file_contents,\
-                         '{"tasks": [{"book1": "read the book"}, '+
-                                    '{"book2": "read the other book"}]}')
-
-    def test_open_grindstone(self):
-        self.gs = GrindStone()
-        self.gs.add_task('bookAlpha', 'read the book')
-        self.gs.write_grindstone()
-
-        self.gs2 = GrindStone()
-        self.assertEqual(self.gs2.grindstone,\
-                         {'tasks': [{'bookAlpha': 'read the book'}]})
-
-    def test_open_modify_grindstone(self):
-        self.gs = GrindStone()
-        self.gs.add_task('bookAlpha', 'read the book')
-        self.gs.write_grindstone()
-
-        self.gs2 = GrindStone()
-        self.gs2.add_task('bookBeta', 'This one matters less')
-        self.assertEqual(self.gs2.grindstone,\
-                         {'tasks': [{'bookAlpha': 'read the book'},
-                                    {'bookBeta': 'This one matters less'}]})
-
-        self.gs2.write_grindstone()
-        with open(self.gs2.grindstone_path, 'r') as f:
-            file_contents2 = f.read()
-        self.assertEqual(file_contents2,\
-                         '{"tasks": [{"bookAlpha": "read the book"}, '+
-                                     '{"bookBeta": "This one matters less"}]}')
-
-
-    def test_add_empty_task(self):
-        self.gs = GrindStone()
-        with self.assertRaises(ValueError) as err:
-            self.gs.add_task()
-
-        self.assertEqual(str(err.exception),\
-                         'Tasks `name` cannot be None')
-        self.assertEqual(self.gs.grindstone,\
-                         {'tasks':[]})
-
-    def test_add_task_with_no_name(self):
-        self.gs = GrindStone()
-        with self.assertRaises(ValueError) as err:
-            self.gs.add_task(desc='foo')
-
-        self.assertEqual(str(err.exception),\
-                         'Tasks `name` cannot be None')
-        self.assertEqual(self.gs.grindstone,\
-                         {'tasks':[]})
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def get_tasks(self, task=None):
+        """
+        Returns all tasks in the grinstone
+        """
+        return self.grindstone['tasks']
