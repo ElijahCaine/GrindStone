@@ -36,24 +36,21 @@ class GrindStone(object):
     def __init__(self, path=None):
         # Establish variables
         self.grindstone_filename = '.grindstone'
-        self.cwd = os.getcwd()
         if path is not None:
             self.path = os.path.abspath(path)+'/'
         else:
-            self.path = os.environ['HOME']
+            raise ValueError('Path must not be None')
 
-        # set the path
         self.grindstone_path = self.path + self.grindstone_filename
         # open the grindstone
         self.grindstone = self.open_grindstone()
-        # write the grindstone
-        #self.write_grindstone()
 
 
     def open_grindstone(self):
         """
         Opens a grindstone file and populates the grindstone with it's
         contents.
+        Returns an empty grindstone json object if a file does not exist.
         """
         try:
             with open(self.grindstone_path, 'r') as f:
@@ -74,9 +71,9 @@ class GrindStone(object):
         Adds object to list of grindstone['tasks'].
         """
         # A name is required to create a task
-        if {name: desc} in self.grindstone['tasks']\
-           or {name: None} in self.grindstone['tasks']:
-            raise ValueError('Task already exists')
+        for k in self.get_tasks():
+            if name in keys_of(k):
+                raise ValueError('Task already exists')
 
         if name is not None:
             # desc can be None, so we can just append whatever we have
@@ -90,11 +87,15 @@ class GrindStone(object):
         """
         Deletes a given task by name.
         """
-        g = self.grindstone['tasks']
+        # Iterate over the list of tasks
         for t in self.grindstone['tasks']:
+            # If they key of the task matches the task given
             if key_of(t) == task:
+                # Remove that task
                 self.grindstone['tasks'].remove(t)
+                # Return True because something did happen
                 return True
+        # Return false because nothing happened
         return False
 
 
@@ -111,9 +112,13 @@ class GrindStone(object):
         """
         Returns a (task, description) tuple for a given task
         """
+        # Iterate over the grindstone tasks
         for t in self.grindstone['tasks']:
+            # if they key matches the task
             if key_of(t) == task:
+                # Return this task
                 return t
+        # Otherwise return nothing
         return None
 
 

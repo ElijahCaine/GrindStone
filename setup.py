@@ -11,5 +11,4 @@ setup(
     scripts=['grindstone/grindstone'],
     classifiers=['License :: OSI Approved :: MIT License'],
     download_url='',
-    install_requires=[],
 )
