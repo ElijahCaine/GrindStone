@@ -6,10 +6,22 @@
 
 ##Usage
 
+Installation
 ```
-$ pip install --user GrindStone
+$ pip3 install --user GrindStone
+```
+
+**NOTE:** This package only works when you install it with pip3
+
+
+Initialize a grindstone (you can have many)
+```
 $ grindstone init .
 Grindstone Created at /path/to/current/working/dir
+```
+
+Add tasks
+```
 $ grindstone add a_task which I really need to get done
 $ grindstone add another_task that might be less important
 $ grindstone
@@ -17,15 +29,27 @@ $ grindstone
 $ grindstone list
 [a_task] which I really need to get done
 [another_task] that might be less important
+```
+
+Prioritize tasks
+```
 $ grindstone prioritize another_task
 $ grindstone list
 [another_task] that might be less important
 [a_task] which I really need to get done
+```
+
+Remove tasks
+```
 $ grindstone remove a_task
 $ grindstone list
 [another_task] that might be less important
 $ grindstone pop
 $ grindstone list
+```
+
+Help menu
+```
 $ grindstone help
 GrindStone: Keeping you on task since 2015.
 Usage:
